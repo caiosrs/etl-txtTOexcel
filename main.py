@@ -330,3 +330,131 @@ for i, pag in enumerate(paginas, 1):
             print(f"Série = {serie}")
         else:
             print("Série =")
+
+    uf_ctps_match = re.search(r'UF CTPS\s*(.*?)(?:Sexo)', pag, re.DOTALL)
+
+    if uf_ctps_match:
+        uf_ctps = uf_ctps_match.group(1).strip()
+        print(f"UF CTPS = {uf_ctps if uf_ctps else ''}")
+    else:
+        print("UF CTPS =")
+
+    def capturar_cpf(pag):
+        # Função para tentar capturar o CPF dentro de um trecho específico
+        def verificar_cpf(texto):
+            # Expressão regular para capturar o CPF no formato XXX.XXX.XXX-XX
+            cpf_list = re.findall(r'\d{3}\.\d{3}\.\d{3}-\d{2}', texto)
+            if cpf_list:
+                return cpf_list[0]  # Retorna o primeiro CPF encontrado
+            return None
+
+        # Primeira tentativa: entre "Seção" e "Salário"
+        trecho_1 = re.search(r'Seção(.*?)Salário', pag, re.DOTALL)
+        if trecho_1:
+            cpf = verificar_cpf(trecho_1.group(1))
+            if cpf:
+                return cpf
+
+        # Segunda tentativa: entre "Horário de Trabalho" e "Data de Admissão"
+        trecho_2 = re.search(r'Horário de Trabalho(.*?)Data de Admissão', pag, re.DOTALL)
+        if trecho_2:
+            cpf = verificar_cpf(trecho_2.group(1))
+            if cpf:
+                return cpf
+
+        # Terceira tentativa: entre "Seção" e "Data de Admissão"
+        trecho_3 = re.search(r'Seção(.*?)Data de Admissão', pag, re.DOTALL)
+        
+        if trecho_3:
+            # Pega o conteúdo entre "Seção" e "Data de Admissão"
+            conteudo = trecho_3.group(1)
+            
+            # Buscar CPFs no formato XXX.XXX.XXX-XX dentro do conteúdo
+            cpfs = re.findall(r'\b\d{3}\.\d{3}\.\d{3}-\d{2}\b', conteudo)
+            if cpfs:
+                return cpfs[0]  # Retorna o primeiro CPF encontrado
+            return ""
+
+        # Quarta tentativa: entre "Data de Admissão" e "Seção"
+        trecho_4 = re.search(r'Data de Admissão(.*?)Seção', pag, re.DOTALL)
+        if trecho_4:
+            cpf = verificar_cpf(trecho_4.group(1))
+            if cpf:
+                return cpf
+
+        # Se nenhuma das verificações encontrar o CPF, retorna vazio
+        return ""
+
+    cpf = capturar_cpf(pag)
+    print(f"CPF = {cpf}")
+
+    print("Doc. Militar =")
+
+    def capturar_cor(pag):
+        # Expressões para capturar o trecho entre "Horário de Trabalho" e "Seção"
+        trecho = re.search(r'Autenticar\s+(\w+)', pag)
+        #trecho = re.search(r'Horário de Trabalho(.*?)Seção', pag, re.DOTALL)
+        
+        if trecho:
+            # Pega o conteúdo entre "Horário de Trabalho" e "Seção"
+            conteudo = trecho.group(1)
+            
+            # Lista de palavras a procurar
+            palavras_cor = ['Preta', 'Parda', 'Branca', 'Amarela', 'Indígena']
+            
+            # Verificar se alguma das palavras está presente no conteúdo
+            for cor in palavras_cor:
+                if cor in conteudo:
+                    return cor  # Retorna a primeira palavra encontrada
+            
+        # Se nenhuma das palavras for encontrada, retorna vazio
+        return ""
+
+    cor = capturar_cor(pag)
+    print(f"Cor = {cor}")
+
+    def capturar_sexo(pag):
+        fichas = re.split(r'(?=Ficha do Empregado)', pag)
+
+        # Processa cada ficha para buscar "Masculino" ou "Feminino"
+        for i, ficha in enumerate(fichas):
+            sexos = re.findall(r'\b(Masculino|Feminino)\b', ficha, re.IGNORECASE)
+            
+            if sexos:
+                for sexo in sexos:
+                    print(f"Sexo = {sexo}")
+            else:
+                print("Sexo =")
+
+    sexo = capturar_sexo(pag)
+
+    def capturar_grau_instrucao(pag):
+        fichas = re.split(r'(?=Ficha do Empregado)', pag)
+
+        for i, ficha in enumerate(fichas):
+            grau_instrucaos = re.findall(r'\b(Ensino Fundamental 5º Completo|Ensino Fundamental 6º ao 9º|Ensino Fundamental Completo|Ensino Médio Incompleto|Ensino Médio Completo|Superior Incompleto|Superior Completo|Pós-Graduação Incompleto|Pós-Graduação)\b', ficha, re.IGNORECASE)
+            
+            if grau_instrucaos:
+                for grau_instrucao in grau_instrucaos:
+                    print(f"Grau de Instrução = {grau_instrucao}")
+            else:
+                print("Grau de Instrução =")
+
+    grau_instrucao = capturar_grau_instrucao(pag)
+
+    def capturar_deficiencia(pag):
+        trecho = re.search(r'Cart. Nac. Habilitação(.*?)Cor', pag, re.DOTALL)
+        
+        if trecho:
+            conteudo = trecho.group(1)
+            
+            palavras_deficiencia = ['Sim', 'Não']
+            
+            for deficiencia in palavras_deficiencia:
+                if deficiencia in conteudo:
+                    return deficiencia
+            
+        return ""
+
+    deficiencia = capturar_deficiencia(pag)
+    print(f"Deficiência = {deficiencia}")
