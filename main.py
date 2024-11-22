@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 
 # Caminho para o arquivo
 caminho = r'C:\Reviant\Documentos\Codes\Python\Ficha de Registro - ETL\ANDRE_PIRES-FichaRegistro.txt'
@@ -388,7 +389,30 @@ for i, pag in enumerate(paginas, 1):
     cpf = capturar_cpf(pag)
     print(f"CPF = {cpf}")
 
-    print("Doc. Militar =")
+    def capturar_doc_militar(pag):
+        palavras_chave = ['Preta', 'Parda', 'Branca', 'Amarela', 'Indígena']
+        # Procurando a parte do texto após "Grau de instrução"
+        grau_match = re.search(r'Grau de instrução\s*[:\s]*(.*)', pag)
+        
+        if grau_match:
+            grau_instrução = grau_match.group(1).strip()
+            
+            # Procurando por palavras-chave (raça/cor)
+            cor_match = next((palavra for palavra in palavras_chave if palavra in grau_instrução), "")
+            
+            # Procurando números para "Doc. militar"
+            doc_militar_match = re.search(r'Doc\.\s*militar\s*[:\s]*(\d+)', pag)
+            
+            if doc_militar_match:
+                doc_militar = doc_militar_match.group(1)
+            else:
+                doc_militar = ""  # Se não houver número, doc_militar será em branco
+
+            return doc_militar
+        else:
+            return ""
+    doc_militar = capturar_doc_militar(pag)
+    print(f"Doc. Militar = {doc_militar}")
 
     def capturar_cor(pag):
         # Expressões para capturar o trecho entre "Horário de Trabalho" e "Seção"
@@ -458,3 +482,118 @@ for i, pag in enumerate(paginas, 1):
 
     deficiencia = capturar_deficiencia(pag)
     print(f"Deficiência = {deficiencia}")
+
+    def capturar_telefone(pag):
+        # Encontra o trecho entre "Telefone Celular" e "Telefone Residencial"
+        trecho_celular = re.search(r'Telefone Celular(.*?)Telefone Residencial', pag, re.DOTALL)
+        telefone_celular = ""
+        telefone_residencial = ""
+
+        if trecho_celular:
+            # Captura números de telefone no formato permitido
+            telefones = re.findall(r'\b\d{2}-\d{6,10}\b', trecho_celular.group(1))
+            if telefones:
+                telefone_celular = telefones[0]  # Captura o primeiro telefone celular encontrado
+
+        # Encontra telefones após "Telefone Celular" (para o telefone residencial)
+        trecho_residencial = re.search(r'Telefone Residencial(.*)', pag, re.DOTALL)
+        if trecho_residencial:
+            telefones = re.findall(r'\b\d{2}-\d{6,10}\b', trecho_residencial.group(1))
+            if telefones:
+                telefone_residencial = telefones[0]  # Captura o primeiro telefone residencial encontrado
+
+        # Imprime os resultados
+        if telefone_celular:
+            print(f"Telefone Celular = {telefone_celular}")
+        else:
+            print("Telefone Celular =")
+
+        if telefone_residencial:
+            print(f"Telefone Residencial = {telefone_residencial}")
+        else:
+            print("Telefone Residencial =")
+    capturar_telefone(pag)
+
+    def capturar_cargo(pag):
+        # Tenta capturar o trecho entre "Função" e "Opção em"
+        match_opcao = re.search(r'Função(.*?)Opção em', pag, re.DOTALL)
+        # Tenta capturar o trecho entre "Função" e uma data no formato dd/mm/aaaa
+        match_data = re.search(r'Função(.*?)(\d{2}/\d{2}/\d{4})', pag, re.DOTALL)
+
+        cargo = ""
+
+        if match_opcao:
+            cargo = match_opcao.group(1).strip()
+        elif match_data:
+            cargo = match_data.group(1).strip()
+
+        # Imprime o resultado
+        print(f"Cargo = {cargo}")
+    capturar_cargo(pag)
+
+    print("Função =")
+
+    def capturar_cbo(pag):
+        # Busca o texto entre "C.B.O. " e "Horário de Trabalho"
+        match = re.search(r'C\.B\.O\.\s+(.*?)Horário de Trabalho', pag, re.DOTALL)
+        
+        cbo = ""
+        if match:
+            cbo = match.group(1).strip()
+        
+        # Imprime o resultado
+        print(f"CBO = {cbo}")
+    capturar_cbo(pag)
+
+    def capturar_data_admissao(pag):
+        # Busca o trecho entre "Conta vinculada no banco" e "Data da Retificação"
+        trecho = re.search(r'Conta vinculada no banco(.*?)Data da Retificação', pag, re.DOTALL)
+        
+        data_admissao = ""
+        if trecho:
+            # Busca a primeira data no formato dd/mm/aaaa no trecho encontrado
+            data = re.search(r'\b\d{2}/\d{2}/\d{4}\b', trecho.group(1))
+            if data:
+                data_admissao = data.group(0)
+        
+        # Se nenhuma data foi encontrada, busca a primeira data após "Data da Retificação"
+        if not data_admissao:
+            data_retificacao = re.search(r'Data da Retificação.*?\b(\d{2}/\d{2}/\d{4})\b', pag, re.DOTALL)
+            if data_retificacao:
+                data_admissao = data_retificacao.group(1)
+        
+        # Imprime o resultado
+        print(f"Data de Admissão = {data_admissao}")
+    capturar_data_admissao(pag)
+
+    def capturar_salario(pag):
+        # Procura a palavra "Por" seguida por qualquer texto e, depois, o primeiro valor monetário
+        match = re.search(r'\bPor\b.*?(\d{1,3}(?:\.\d{3})*,\d{2})', pag, re.DOTALL)
+        
+        salario = ""
+        if match:
+            salario = match.group(1).strip()
+        
+        # Imprime o resultado
+        print(f"Salário = {salario}")
+    capturar_salario(pag)
+
+    print("Por = Mês")
+
+    def capturar_horarios(pag):
+        # Localiza o texto "Horário de Intervalo" e pega os próximos 8 conjuntos separados por espaço
+        match = re.search(r'Horário de Intervalo((?:\s+\S+){8})', pag)
+        if match:
+            # Divide os 8 conjuntos em uma lista
+            proximos = match.group(1).strip().split()
+            if len(proximos) >= 8:
+                # Pega os 4 primeiros como horário_trabalho e os 4 últimos como horário_intervalo
+                horario_trabalho = " ".join(proximos[:4])
+                horario_intervalo = " ".join(proximos[4:])
+                print(f"Horário de Trabalho = {horario_trabalho}")
+                print(f"Horário de Intervalo = {horario_intervalo}")
+            else:
+                print("Dados insuficientes após 'Horário de Intervalo'")
+        else:
+            print("Texto 'Horário de Intervalo' não encontrado")
+    capturar_horarios(pag)
